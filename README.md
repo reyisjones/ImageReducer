@@ -15,18 +15,59 @@ A simple, user-friendly desktop application to compress JPG and PNG images to we
 
 ## 📦 Download
 
-### Latest Release: [v1.0.0](https://github.com/reyisjones/ImageReducer/releases/latest)
+### 🚀 Latest Release
 
-**Windows Users:**
+**[View All Releases](https://github.com/reyisjones/ImageReducer/releases)** | **[Latest Version](https://github.com/reyisjones/ImageReducer/releases/latest)**
 
-| Download | Description | Size |
-|----------|-------------|------|
-| [📥 ImageCompressor.exe](https://github.com/reyisjones/ImageReducer/releases/latest/download/ImageCompressor.exe) | Standalone executable (no installation) | ~25 MB |
-| [📦 Full Package.zip](https://github.com/reyisjones/ImageReducer/releases/latest) | Complete package with docs and installer | ~30 MB |
+### Windows Downloads
 
-**Installation:**
-- **Quick:** Download `.exe` and run directly (no install needed)
-- **Full:** Download `.zip`, extract, run `install.ps1` for shortcuts and Start Menu integration
+Choose the best option for you:
+
+#### Option 1: Standalone Executable (Recommended for Quick Use)
+- **File:** `ImageCompressor.exe` (~25 MB)
+- **Direct Download:** Available in [latest release assets](https://github.com/reyisjones/ImageReducer/releases/latest)
+- **No installation required** - Just download and run!
+- **Perfect for:** Quick usage, portable installation
+
+#### Option 2: Full Installation Package
+- **File:** `ImageCompressor-v{version}-Windows.zip` (~95 MB)
+- **Includes:** Executable, documentation, installer scripts, sample images
+- **Download from:** [Latest release](https://github.com/reyisjones/ImageReducer/releases/latest)
+- **Perfect for:** Complete installation with desktop shortcuts
+
+### 📥 Installation Steps
+
+#### Quick Start (Standalone .exe):
+```powershell
+# 1. Download ImageCompressor.exe from the latest release
+# 2. Double-click to run - that's it!
+```
+
+#### Full Installation (Recommended):
+```powershell
+# 1. Download ImageCompressor-v{version}-Windows.zip
+# 2. Extract the ZIP file
+# 3. Right-click install.ps1 → Run with PowerShell
+# 4. Follow the installation wizard
+# 5. Find the app in Start Menu or Desktop shortcut
+```
+
+#### Manual Installation:
+```powershell
+# 1. Extract ZIP to desired location
+# 2. Run start.bat or ImageCompressor.exe directly
+```
+
+### 🔐 Verify Download (Optional)
+
+Each release includes SHA256 checksums for security verification:
+
+```powershell
+# Windows PowerShell
+Get-FileHash ImageCompressor-v{version}-Windows.zip -Algorithm SHA256
+
+# Compare with .sha256 file from release
+```
 
 ---
 
