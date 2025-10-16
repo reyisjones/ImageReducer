@@ -237,10 +237,16 @@ class TestErrorHandling:
     def test_handles_read_only_directory(self, tmp_path):
         """Test handling of read-only directory"""
         # Note: This test may not work on all systems
+        import sys
+        
+        # Skip on Windows as directory permissions work differently
+        if sys.platform == "win32":
+            pytest.skip("Read-only directory test not applicable on Windows")
+        
         read_only_dir = tmp_path / "readonly"
         read_only_dir.mkdir()
         
-        # Try to make read-only (platform-specific)
+        # Try to make read-only (Unix-like systems)
         try:
             os.chmod(read_only_dir, 0o444)
             
