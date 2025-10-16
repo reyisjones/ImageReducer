@@ -1,0 +1,11 @@
+# Build Dependencies for Image Compressor
+# These packages are needed to build the standalone executable
+
+# PyInstaller for creating executable
+pyinstaller>=6.0.0
+
+# Application dependencies (duplicated from requirements.txt for convenience)
+Pillow>=10.0.0
+
+# Optional: For better executable compression
+# pyinstaller[encryption]  # Adds bytecode encryption support
