@@ -1,0 +1,208 @@
+name: Release - Build and Publish
+
+on:
+  release:
+    types: [created, published]
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build and Release
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch all history for version detection
+        
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+        
+    - name: Get version from tag
+      id: get_version
+      run: |
+        $tag = "${{ github.ref }}" -replace 'refs/tags/', ''
+        $version = $tag -replace '^v', ''
+        echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+        echo "TAG=$tag" >> $env:GITHUB_OUTPUT
+        Write-Host "Building version: $version"
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-build.txt
+        
+    - name: Run tests
+      run: |
+        pip install -r requirements-test.txt
+        python -m pytest tests/ -v --tb=short
+        
+    - name: Build executable
+      run: |
+        python -m PyInstaller --name=ImageCompressor --onefile --windowed --clean `
+          --hidden-import=PIL._tkinter_finder `
+          --hidden-import=PIL.Image `
+          --hidden-import=PIL.ImageTk `
+          --add-data="config.ini;." `
+          --add-data="LICENSE;." `
+          --add-data="README.md;." `
+          image_compressor_gui.py
+        
+    - name: Verify build
+      run: |
+        if (!(Test-Path "dist\ImageCompressor.exe")) {
+          Write-Error "Build failed - executable not found"
+          exit 1
+        }
+        $size = (Get-Item "dist\ImageCompressor.exe").Length / 1MB
+        Write-Host "✓ Build successful - Size: $([math]::Round($size, 2)) MB"
+        
+    - name: Create distribution package
+      run: |
+        $version = "${{ steps.get_version.outputs.VERSION }}"
+        $packageName = "ImageCompressor-v$version-Windows"
+        
+        # Create distribution folder
+        New-Item -ItemType Directory -Force -Path "release/$packageName"
+        
+        # Copy executable
+        Copy-Item "dist\ImageCompressor.exe" "release/$packageName\"
+        
+        # Copy documentation
+        Copy-Item "README.md" "release/$packageName\"
+        Copy-Item "LICENSE" "release/$packageName\"
+        Copy-Item "QUICKSTART.md" "release/$packageName\"
+        Copy-Item "config.ini" "release/$packageName\"
+        
+        # Copy installer scripts
+        Copy-Item "install.ps1" "release/$packageName\"
+        Copy-Item "start.bat" "release/$packageName\"
+        
+        # Create ZIP
+        Compress-Archive -Path "release/$packageName\*" -DestinationPath "release/$packageName.zip"
+        
+        Write-Host "✓ Package created: $packageName.zip"
+        $zipSize = (Get-Item "release/$packageName.zip").Length / 1MB
+        Write-Host "  Size: $([math]::Round($zipSize, 2)) MB"
+        
+    - name: Generate checksums
+      run: |
+        $version = "${{ steps.get_version.outputs.VERSION }}"
+        $packageName = "ImageCompressor-v$version-Windows"
+        
+        $hash = Get-FileHash "release/$packageName.zip" -Algorithm SHA256
+        $hash.Hash + "  " + (Split-Path $hash.Path -Leaf) | Out-File "release/$packageName.zip.sha256" -Encoding ASCII
+        
+        Write-Host "✓ SHA256: $($hash.Hash)"
+        
+    - name: Create release notes
+      run: |
+        $version = "${{ steps.get_version.outputs.VERSION }}"
+        
+        $notes = @"
+        # Image Compressor v$version
+        
+        ## 📦 Downloads
+        
+        - **Windows Executable**: ImageCompressor.exe (standalone)
+        - **Windows Package**: ImageCompressor-v$version-Windows.zip (with docs)
+        
+        ## ✨ Features
+        
+        - Smart image compression to <1MB target
+        - User-friendly GUI with help and demo
+        - Support for JPG and PNG formats
+        - Batch processing with progress tracking
+        - Configurable quality and size settings
+        - Sample images included for testing
+        
+        ## 🚀 Installation
+        
+        ### Option 1: Standalone Executable
+        1. Download `ImageCompressor.exe`
+        2. Run it directly (no installation required)
+        
+        ### Option 2: Full Package
+        1. Download and extract `ImageCompressor-v$version-Windows.zip`
+        2. Run `install.ps1` for full installation with shortcuts
+        3. Or run `ImageCompressor.exe` directly
+        
+        ## 📝 Verification
+        
+        Verify the download integrity using SHA256 checksum:
+        ``````
+        certutil -hashfile ImageCompressor-v$version-Windows.zip SHA256
+        ``````
+        
+        Compare with the value in `ImageCompressor-v$version-Windows.zip.sha256`
+        
+        ## 🔧 Requirements
+        
+        - Windows 10/11 (64-bit)
+        - No additional dependencies required
+        
+        ## 📚 Documentation
+        
+        - [README.md](https://github.com/reyisjones/ImageReducer/blob/master/README.md)
+        - [Quick Start Guide](https://github.com/reyisjones/ImageReducer/blob/master/QUICKSTART.md)
+        - [Advanced Features](https://github.com/reyisjones/ImageReducer/blob/master/ADVANCED.md)
+        
+        ## 🐛 Bug Reports
+        
+        Please report issues at: https://github.com/reyisjones/ImageReducer/issues
+        
+        ---
+        
+        **Created by:** Reyis Jones  
+        **With assistance from:** GitHub Copilot AI
+        "@
+        
+        $notes | Out-File "release/RELEASE_NOTES.md" -Encoding UTF8
+        
+    - name: Upload executable artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ImageCompressor-Executable
+        path: dist/ImageCompressor.exe
+        
+    - name: Upload package artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ImageCompressor-Package
+        path: release/*.zip
+        
+    - name: Upload release assets
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: |
+          dist/ImageCompressor.exe
+          release/*.zip
+          release/*.sha256
+        body_path: release/RELEASE_NOTES.md
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Release summary
+      run: |
+        $version = "${{ steps.get_version.outputs.VERSION }}"
+        Write-Host ""
+        Write-Host "✅ Release v$version completed successfully!" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "📦 Artifacts uploaded:" -ForegroundColor Cyan
+        Write-Host "   • ImageCompressor.exe" -ForegroundColor Gray
+        Write-Host "   • ImageCompressor-v$version-Windows.zip" -ForegroundColor Gray
+        Write-Host "   • ImageCompressor-v$version-Windows.zip.sha256" -ForegroundColor Gray
+        Write-Host ""
