@@ -155,13 +155,18 @@ Simply double-click `launch.bat` to run the application directly.
 ```
 ImageReducer/
 ├── image_compressor_gui.py    # Main GUI application
+├── version.py                 # Version management
 ├── install.ps1                # Automated installer
-├── launch.bat                 # Quick launch script
-├── README.md                  # This file
-├── batch-resize.py            # Legacy GIMP script
-├── resize_images.py           # CLI compression tool
-├── organize_images.py         # Image organization utility
-└── Compress-Images.ps1        # PowerShell compression script
+├── start.bat                  # Smart launcher
+├── tests/                     # Test suite
+├── sample_images/             # Demo images
+├── docs/                      # Documentation
+├── utils/                     # Helper scripts
+│   ├── batch-resize.py        # Legacy GIMP script
+│   ├── resize_images.py       # CLI compression tool
+│   ├── organize_images.py     # Image organization utility
+│   └── Compress-Images.ps1    # PowerShell compression script
+└── config.ini                 # Configuration
 ```
 
 ## 🛠️ Technical Details
@@ -264,7 +269,7 @@ This project includes comprehensive unit tests to ensure reliability.
 - Dependency verification
 - Configuration validation
 
-See `tests/README.md` for detailed testing documentation.
+See [`tests/README.md`](tests/README.md) for detailed testing documentation.
 
 ## 🗑️ Uninstallation
 
@@ -331,26 +336,57 @@ This creates 8 feature-based commits following Conventional Commits style:
 
 ```
 ImageReducer/
-├── image_compressor_gui.py      # Main application
-├── install.ps1                  # Installer
+├── image_compressor_gui.py      # Main GUI application
+├── version.py                   # Version management
+├── install.ps1                  # Installation script
 ├── start.bat                    # Smart launcher
+├── build_exe.ps1                # Build automation script
 ├── tests/                       # Test suite
-├── sample_images/               # Demo images
+│   ├── test_compression.py
+│   ├── test_gui.py
+│   └── README.md
+├── sample_images/               # Demo images for testing
 ├── docs/                        # Documentation
-└── config.ini                   # Configuration
+│   ├── QUICKSTART.md
+│   ├── ADVANCED.md
+│   ├── VISUAL_GUIDE.md
+│   ├── PROJECT_SUMMARY.md
+│   ├── BUILD_GUIDE.md
+│   ├── RELEASE_GUIDE.md
+│   ├── GIT_SUMMARY.md
+│   ├── COMPLETION_SUMMARY.md
+│   └── BUILD_IMPLEMENTATION.md
+├── utils/                       # Helper scripts
+│   ├── batch-resize.py
+│   ├── Compress-Images.ps1
+│   ├── organize_images.py
+│   └── resize_images.py
+├── .github/workflows/           # CI/CD pipelines
+│   ├── ci.yml
+│   └── release.yml
+├── config.ini                   # User configuration
+├── requirements.txt             # Python dependencies
+├── requirements-build.txt       # Build dependencies
+└── LICENSE                      # MIT License
 ```
 
-See `PROJECT_SUMMARY.md` for complete technical documentation.
+See [`docs/PROJECT_SUMMARY.md`](docs/PROJECT_SUMMARY.md) for complete technical documentation.
 
 ## 📚 Documentation
 
-- **README.md** (this file) - Overview and basic usage
-- **QUICKSTART.md** - Quick reference guide
-- **ADVANCED.md** - Advanced features and automation
-- **VISUAL_GUIDE.md** - Step-by-step visual walkthrough
-- **PROJECT_SUMMARY.md** - Technical architecture
-- **COMPLETION_SUMMARY.md** - Implementation checklist
-- **tests/README.md** - Testing documentation
+Complete documentation is available in the [`docs/`](docs/) folder:
+
+- **[README.md](README.md)** (this file) - Overview and basic usage
+- **[QUICKSTART.md](docs/QUICKSTART.md)** - Quick reference guide  
+- **[ADVANCED.md](docs/ADVANCED.md)** - Advanced features and automation
+- **[VISUAL_GUIDE.md](docs/VISUAL_GUIDE.md)** - Step-by-step visual walkthrough
+- **[PROJECT_SUMMARY.md](docs/PROJECT_SUMMARY.md)** - Technical architecture
+- **[BUILD_GUIDE.md](docs/BUILD_GUIDE.md)** - Building and packaging guide
+- **[RELEASE_GUIDE.md](docs/RELEASE_GUIDE.md)** - Release creation process (Spanish)
+- **[GIT_SUMMARY.md](docs/GIT_SUMMARY.md)** - Git repository summary
+- **[COMPLETION_SUMMARY.md](docs/COMPLETION_SUMMARY.md)** - Implementation checklist
+- **[BUILD_IMPLEMENTATION.md](docs/BUILD_IMPLEMENTATION.md)** - Build system details
+- **[tests/README.md](tests/README.md)** - Testing documentation
 
 ## 👨‍💻 Credits
 

@@ -81,7 +81,7 @@ jobs:
         # Copy documentation
         Copy-Item "README.md" "release/$packageName\"
         Copy-Item "LICENSE" "release/$packageName\"
-        Copy-Item "QUICKSTART.md" "release/$packageName\"
+        Copy-Item "docs/QUICKSTART.md" "release/$packageName\"
         Copy-Item "config.ini" "release/$packageName\"
         
         # Copy installer scripts
@@ -154,8 +154,8 @@ jobs:
         ## 📚 Documentation
         
         - [README.md](https://github.com/reyisjones/ImageReducer/blob/master/README.md)
-        - [Quick Start Guide](https://github.com/reyisjones/ImageReducer/blob/master/QUICKSTART.md)
-        - [Advanced Features](https://github.com/reyisjones/ImageReducer/blob/master/ADVANCED.md)
+        - [Quick Start Guide](https://github.com/reyisjones/ImageReducer/blob/master/docs/QUICKSTART.md)
+        - [Advanced Features](https://github.com/reyisjones/ImageReducer/blob/master/docs/ADVANCED.md)
         
         ## 🐛 Bug Reports
         
