@@ -5,8 +5,28 @@ A simple, user-friendly desktop application to compress JPG and PNG images to we
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![Tests](https://img.shields.io/badge/Tests-Passing-brightgreen.svg)](#testing)
+[![GitHub Release](https://img.shields.io/github/v/release/reyisjones/ImageReducer)](https://github.com/reyisjones/ImageReducer/releases/latest)
+[![GitHub Downloads](https://img.shields.io/github/downloads/reyisjones/ImageReducer/total)](https://github.com/reyisjones/ImageReducer/releases)
+[![CI Status](https://github.com/reyisjones/ImageReducer/workflows/CI%20-%20Tests%20and%20Validation/badge.svg)](https://github.com/reyisjones/ImageReducer/actions)
 
 **Created by Reyis Jones with GitHub Copilot AI** | October 2025 | v1.0.0
+
+---
+
+## 📦 Download
+
+### Latest Release: [v1.0.0](https://github.com/reyisjones/ImageReducer/releases/latest)
+
+**Windows Users:**
+
+| Download | Description | Size |
+|----------|-------------|------|
+| [📥 ImageCompressor.exe](https://github.com/reyisjones/ImageReducer/releases/latest/download/ImageCompressor.exe) | Standalone executable (no installation) | ~25 MB |
+| [📦 Full Package.zip](https://github.com/reyisjones/ImageReducer/releases/latest) | Complete package with docs and installer | ~30 MB |
+
+**Installation:**
+- **Quick:** Download `.exe` and run directly (no install needed)
+- **Full:** Download `.zip`, extract, run `install.ps1` for shortcuts and Start Menu integration
 
 ---
 
