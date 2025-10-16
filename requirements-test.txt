@@ -1,0 +1,16 @@
+# Test Requirements
+# Install with: pip install -r requirements-test.txt
+
+# Core testing framework
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Image testing
+Pillow>=10.0.0
+
+# Code quality
+pytest-timeout>=2.1.0
+pytest-xdist>=3.3.0  # For parallel test execution
+
+# Test reporting
+pytest-html>=3.2.0
