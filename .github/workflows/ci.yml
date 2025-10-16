@@ -3,6 +3,8 @@ name: CI - Tests and Validation
 on:
   push:
     branches: [ master, main, develop ]
+    tags-ignore:
+      - 'v*.*.*'
   pull_request:
     branches: [ master, main ]
 
