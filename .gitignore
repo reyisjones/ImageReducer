@@ -49,9 +49,10 @@ desktop.ini
 
 # Project specific
 Reduced/
-sample_images/
 *.zip
 *.exe
 ImageCompressor_*.zip
 install_log.txt
 uninstall.ps1
+
+# Note: sample_images/ is tracked for demo purposes
