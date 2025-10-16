@@ -13,10 +13,18 @@ import os
 import sys
 from PIL import Image
 
+# Import version information
+try:
+    from version import __version__, APP_NAME, get_full_version
+except ImportError:
+    __version__ = "1.0.0"
+    APP_NAME = "Image Compressor"
+    get_full_version = lambda: f"{APP_NAME} v{__version__}"
+
 class ImageCompressorGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Image Compressor - Simple & Fast")
+        self.root.title(f"{APP_NAME} v{__version__} - Simple & Fast")
         self.root.geometry("700x550")
         self.root.resizable(False, False)
         
@@ -577,6 +585,11 @@ class ImageCompressorGUI:
    • Test settings on a few images first
    • Use presets for common scenarios
    • Check output quality before bulk operations
+
+📝 ABOUT
+   Version: {__version__}
+   Created by: Reyis Jones
+   With assistance from: GitHub Copilot AI
 
 Need more help? See README.md in the installation folder.
 """
