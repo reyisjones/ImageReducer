@@ -57,7 +57,7 @@ $runAll = $All -or (-not $Unit -and -not $Integration)
 Write-Host "`n🧪 Running tests..." -ForegroundColor Cyan
 
 # Build pytest command
-$pytestCmd = "python -m pytest tests/"
+$pytestCmd = "python -m pytest ..\src\tests\"
 
 if ($Unit) {
     $pytestCmd += " -m unit"

@@ -10,7 +10,7 @@ param(
 Write-Host "`n🔨 Image Compressor - Build Executable`n" -ForegroundColor Cyan
 
 # Import version
-$versionContent = Get-Content "version.py" -Raw
+$versionContent = Get-Content "..\src\version.py" -Raw
 if ($versionContent -match '__version__\s*=\s*"([^"]+)"') {
     $version = $matches[1]
     Write-Host "📦 Building version: $version" -ForegroundColor Green
@@ -82,7 +82,7 @@ $buildArgs = @(
     "--onefile",
     "--windowed",
     "--clean",
-    "image_compressor_gui.py"
+    "..\src\image_compressor_gui.py"
 )
 
 # Add debug console if requested
@@ -98,13 +98,13 @@ $buildArgs += "--hidden-import=PIL.Image"
 $buildArgs += "--hidden-import=PIL.ImageTk"
 
 # Add data files
-$buildArgs += "--add-data=config.ini;."
-$buildArgs += "--add-data=LICENSE;."
-$buildArgs += "--add-data=README.md;."
+$buildArgs += "--add-data=..\config.ini;."
+$buildArgs += "--add-data=..\LICENSE;."
+$buildArgs += "--add-data=..\README.md;."
 
 # Add icon if available
-if (Test-Path "assets\icon.ico") {
-    $buildArgs += "--icon=assets\icon.ico"
+if (Test-Path "..\assets\icon.ico") {
+    $buildArgs += "--icon=..\assets\icon.ico"
 }
 
 Write-Host "   Building with arguments:" -ForegroundColor Gray

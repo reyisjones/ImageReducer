@@ -29,7 +29,7 @@ if ($LASTEXITCODE -eq 0) {
 # 3. Run unit tests
 Write-Host "`n3. Running unit tests..." -ForegroundColor Yellow
 pip install -r requirements-test.txt -q
-pytest tests/ -v --tb=short
+pytest ..\src\tests\ -v --tb=short
 if ($LASTEXITCODE -eq 0) {
     Write-Host "   ✅ All tests passed" -ForegroundColor Green
 } else {
@@ -40,7 +40,7 @@ if ($LASTEXITCODE -eq 0) {
 Write-Host "`n4. Testing GUI application..." -ForegroundColor Yellow
 Write-Host "   Starting GUI (will close in 3 seconds)..." -ForegroundColor Gray
 
-$process = Start-Process -FilePath "python" -ArgumentList "image_compressor_gui.py" -PassThru
+$process = Start-Process -FilePath "python" -ArgumentList "..\src\image_compressor_gui.py" -PassThru
 Start-Sleep -Seconds 3
 if (!$process.HasExited) {
     $process.Kill()
@@ -51,7 +51,7 @@ if (!$process.HasExited) {
 
 # 5. Generate sample images for testing
 Write-Host "`n5. Generating sample images..." -ForegroundColor Yellow
-python generate_samples.py
+python ..\src\generate_samples.py
 if ($LASTEXITCODE -eq 0) {
     Write-Host "   ✅ Sample images generated" -ForegroundColor Green
 } else {
@@ -60,7 +60,7 @@ if ($LASTEXITCODE -eq 0) {
 
 Write-Host "`n🎉 Local testing complete!" -ForegroundColor Green
 Write-Host "`nNext steps:" -ForegroundColor Cyan
-Write-Host "   • Run: python image_compressor_gui.py" -ForegroundColor Gray
-Write-Host "   • Or build executable: .\build_exe.ps1" -ForegroundColor Gray
+Write-Host "   • Run: python src\image_compressor_gui.py" -ForegroundColor Gray
+Write-Host "   • Or build executable: .\scripts\build_exe.ps1" -ForegroundColor Gray
 Write-Host "   • Test with images in sample_images/ folder" -ForegroundColor Gray
 Write-Host ""
