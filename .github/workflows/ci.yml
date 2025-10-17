@@ -31,11 +31,11 @@ jobs:
         
     - name: Run system validation
       run: |
-        python -m pytest tests/ -v --tb=short
+        python -m pytest src/tests/ -v --tb=short
         
     - name: Run tests with coverage
       run: |
-        python -m pytest tests/ --cov=. --cov-report=xml --cov-report=html --cov-report=term
+        python -m pytest src/tests/ --cov=src --cov-report=xml --cov-report=html --cov-report=term
         
     - name: Upload coverage reports
       uses: codecov/codecov-action@v4
@@ -74,9 +74,9 @@ jobs:
     - name: Run flake8
       run: |
         # Stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 src --count --select=E9,F63,F7,F82 --show-source --statistics
         # Exit-zero treats all errors as warnings
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        flake8 src --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       continue-on-error: true
       
   build-test:
@@ -102,7 +102,7 @@ jobs:
         
     - name: Build executable with PyInstaller
       run: |
-        python -m PyInstaller --name=ImageCompressor --onefile --windowed --clean image_compressor_gui.py
+        python -m PyInstaller --name=ImageCompressor --onefile --windowed --clean src/image_compressor_gui.py
         
     - name: Verify build output
       run: |

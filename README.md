@@ -154,19 +154,36 @@ Simply double-click `launch.bat` to run the application directly.
 
 ```
 ImageReducer/
-├── image_compressor_gui.py    # Main GUI application
-├── version.py                 # Version management
-├── install.ps1                # Automated installer
-├── start.bat                  # Smart launcher
-├── tests/                     # Test suite
-├── sample_images/             # Demo images
+├── src/                       # Python application code
+│   ├── image_compressor_gui.py    # Main GUI application
+│   ├── version.py                 # Version management
+│   ├── generate_samples.py        # Sample image generator
+│   ├── tests/                     # Test suite
+│   │   ├── test_compression.py
+│   │   └── README.md
+│   └── __init__.py
+├── scripts/                   # PowerShell and batch scripts
+│   ├── build_exe.ps1              # Build automation
+│   ├── install.ps1                # Automated installer
+│   ├── run_tests.ps1              # Test runner
+│   ├── test_local.ps1             # Local testing script
+│   ├── start.bat                  # Smart launcher
+│   └── quick_setup.bat            # Quick setup script
 ├── docs/                      # Documentation
-├── utils/                     # Helper scripts
-│   ├── batch-resize.py        # Legacy GIMP script
-│   ├── resize_images.py       # CLI compression tool
-│   ├── organize_images.py     # Image organization utility
-│   └── Compress-Images.ps1    # PowerShell compression script
-└── config.ini                 # Configuration
+│   ├── QUICKSTART.md
+│   ├── ADVANCED.md
+│   ├── BUILD_GUIDE.md
+│   └── PROJECT_SUMMARY.md
+├── utils/                     # Helper utilities
+│   ├── batch-resize.py            # Legacy GIMP script
+│   ├── resize_images.py           # CLI compression tool
+│   ├── organize_images.py         # Image organization utility
+│   └── Compress-Images.ps1        # PowerShell compression script
+├── sample_images/             # Demo images for testing
+├── .github/workflows/         # CI/CD pipelines
+├── config.ini                 # User configuration
+├── requirements.txt           # Python dependencies
+└── README.md                  # This file
 ```
 
 ## 🛠️ Technical Details

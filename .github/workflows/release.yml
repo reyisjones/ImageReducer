@@ -45,7 +45,7 @@ jobs:
     - name: Run tests
       run: |
         pip install -r requirements-test.txt
-        python -m pytest tests/ -v --tb=short
+        python -m pytest src/tests/ -v --tb=short
         
     - name: Build executable
       run: |
@@ -56,7 +56,7 @@ jobs:
           --add-data="config.ini;." `
           --add-data="LICENSE;." `
           --add-data="README.md;." `
-          image_compressor_gui.py
+          src/image_compressor_gui.py
         
     - name: Verify build
       run: |
