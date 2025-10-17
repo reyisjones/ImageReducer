@@ -15,8 +15,10 @@ from PIL import Image
 
 # Import version information
 try:
-    from version import __version__, APP_NAME, get_full_version
+    from .version import __version__, APP_NAME, get_full_version
 except ImportError:
+    # Fallback for direct execution
+    from version import __version__, APP_NAME, get_full_version
     __version__ = "1.0.0"
     APP_NAME = "Image Compressor"
     get_full_version = lambda: f"{APP_NAME} v{__version__}"
