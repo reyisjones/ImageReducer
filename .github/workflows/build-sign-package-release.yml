@@ -1,0 +1,133 @@
+name: Build, Sign, Package, and Release ImageReducer
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  release:
+    types: [created]
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    name: "Build, Test & Sign (Windows)"
+    runs-on: windows-latest
+
+    steps:
+      # 1) Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2) Setup Python
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 3) Install dependencies
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          if (Test-Path requirements.txt) {
+            pip install -r requirements.txt
+          }
+          if (Test-Path requirements-test.txt) {
+            pip install -r requirements-test.txt
+          }
+
+      # 4) Run Python unit tests (pytest.ini handles discovery under src/tests)
+      - name: Run Python unit tests
+        shell: pwsh
+        run: |
+          python -m pytest -v --maxfail=3 --disable-warnings --tb=short
+
+      # 5) Run PowerShell script smoke tests
+      - name: Run PowerShell scripts
+        shell: pwsh
+        run: |
+          Write-Host "Testing PowerShell scripts..."
+          if (Test-Path ./scripts/test_system.ps1) {
+            ./scripts/test_system.ps1 -Quick
+          } elseif (Test-Path ./Compress-Images.ps1) {
+            ./Compress-Images.ps1 -Help
+          } else {
+            Write-Host "Skipping PowerShell tests (scripts not found)..."
+          }
+
+      # 6) Build the Python executable
+      - name: Build executable
+        shell: pwsh
+        run: |
+          pip install pyinstaller
+          pyinstaller src/main.py --onefile --noconsole --name ImageCompressor
+
+      # 7) Digitally sign the executable (requires secrets)
+      - name: Sign executable
+        if: ${{ env.CERTIFICATE_PFX != '' && env.CERTIFICATE_PASSWORD != '' }}
+        shell: pwsh
+        env:
+          CERTIFICATE_PFX: ${{ secrets.CERTIFICATE_PFX }}
+          CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+        run: |
+          $CertPath = "$env:RUNNER_TEMP\codesign.pfx"
+          [IO.File]::WriteAllBytes($CertPath, [Convert]::FromBase64String($env:CERTIFICATE_PFX))
+          & "C:\Program Files (x86)\Windows Kits\10\bin\x64\signtool.exe" sign `
+            /f $CertPath `
+            /p $env:CERTIFICATE_PASSWORD `
+            /tr http://timestamp.digicert.com `
+            /td sha256 `
+            /fd sha256 `
+            "dist\ImageCompressor.exe"
+          Write-Host "Executable signed successfully."
+
+      # 8) Create FullPackage.zip (includes EXE, docs, scripts, config.ini)
+      - name: Create Full Package ZIP
+        shell: pwsh
+        run: |
+          $zipPath = "dist\FullPackage.zip"
+          if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+          Compress-Archive -Path `
+            "dist\ImageCompressor.exe", `
+            "docs", `
+            "scripts", `
+            "README.md", `
+            "LICENSE", `
+            "config.ini" `
+            -DestinationPath $zipPath
+          Write-Host "FullPackage.zip created at $zipPath"
+
+      # 9) Upload build artifacts
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ImageReducer-FullPackage
+          path: |
+            dist/ImageCompressor.exe
+            dist/FullPackage.zip
+
+  release:
+    name: "Publish Signed Release"
+    needs: build-test
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ImageReducer-FullPackage
+          path: dist/
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/ImageCompressor.exe
+            dist/FullPackage.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
