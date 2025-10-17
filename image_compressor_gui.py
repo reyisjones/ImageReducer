@@ -356,21 +356,32 @@ class ImageCompressorGUI:
                 image_files = [Path(f) for f in path.split(";")]
                 output_folder = Path(image_files[0].parent) / self.output_folder_name.get()
             else:
-                # Single folder
-                folder = Path(path)
-                if not folder.is_dir():
-                    self.progress_queue.put(("error", "Invalid folder path."))
+                # Single path - could be file or folder
+                single_path = Path(path)
+                
+                if single_path.is_file():
+                    # Single file
+                    image_files = [single_path]
+                    output_folder = single_path.parent / self.output_folder_name.get()
+                elif single_path.is_dir():
+                    # Single folder
+                    folder = single_path
+                    
+                    # Find all images
+                    image_files = []
+                    for ext in ['*.jpg', '*.jpeg', '*.png', '*.JPG', '*.JPEG', '*.PNG']:
+                        image_files.extend(list(folder.rglob(ext)))
+                    
+                    # Remove duplicates (just in case)
+                    image_files = list(set(image_files))
+                    
+                    output_folder = folder / self.output_folder_name.get()
+                    
+                    # Exclude images already in output folder
+                    image_files = [f for f in image_files if output_folder.name not in str(f.parent)]
+                else:
+                    self.progress_queue.put(("error", "Invalid file or folder path."))
                     return
-                
-                # Find all images
-                image_files = []
-                for ext in ['*.jpg', '*.jpeg', '*.png', '*.JPG', '*.JPEG', '*.PNG']:
-                    image_files.extend(list(folder.rglob(ext)))
-                
-                output_folder = folder / self.output_folder_name.get()
-                
-                # Exclude images already in output folder
-                image_files = [f for f in image_files if output_folder.name not in str(f.parent)]
             
             if not image_files:
                 self.progress_queue.put(("error", "No image files found in the selected location."))
@@ -390,17 +401,27 @@ class ImageCompressorGUI:
                     self.progress_queue.put(("log", "\n❌ Compression canceled by user."))
                     break
                 
+                # Debug: Log which file we're processing
+                self.progress_queue.put(("log", f"🔄 Processing: {input_path.name} (#{i}/{total})\n"))
+                
                 try:
                     # Get original size
                     original_size_mb = os.path.getsize(input_path) / (1024 * 1024)
                     
-                    # Create output path
-                    output_path = output_folder / input_path.name
+                    # Create output path with .jpg extension (since we always save as JPEG)
+                    stem = input_path.stem
+                    output_path = output_folder / f"{stem}.jpg"
+                    
+                    # Debug: Check if file exists before compression
+                    original_output_path = output_path
                     counter = 1
                     while output_path.exists():
-                        stem = input_path.stem
-                        output_path = output_folder / f"{stem}_{counter}{input_path.suffix}"
+                        output_path = output_folder / f"{stem}_{counter}.jpg"
                         counter += 1
+                    
+                    # Debug logging
+                    if counter > 1:
+                        self.progress_queue.put(("log", f"⚠️  File {original_output_path.name} already exists, using {output_path.name}\n"))
                     
                     # Compress image
                     result = self.reduce_image(
