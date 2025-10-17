@@ -24,33 +24,38 @@ function Write-TestResult {
     } else {
         Write-Host "❌ FAIL: $Test" -ForegroundColor Red
         if ($Message) {
+        Clear-Host
+        Write-Host "`n=== Image Compressor - System Test ===`n" -ForegroundColor Magenta
+
+        # Determine repository root (parent of scripts folder)
+        $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
             Write-Host "   → $Message" -ForegroundColor Yellow
         }
         $script:TestsFailed++
-    }
-}
-
+            Write-Host "`n=== $Title ===`n" -ForegroundColor Cyan
 function Write-Warning {
     param([string]$Message)
     Write-Host "⚠️  WARN: $Message" -ForegroundColor Yellow
     $script:Warnings++
 }
 
-function Write-Info {
-    param([string]$Message)
-    Write-Host "ℹ️  INFO: $Message" -ForegroundColor Cyan
-}
-
-function Write-Section {
-    param([string]$Title)
-    Write-Host "`n╔════════════════════════════════════════╗" -ForegroundColor Cyan
-    Write-Host "║  $Title" -ForegroundColor Cyan
-    Write-Host "╚════════════════════════════════════════╝`n" -ForegroundColor Cyan
-}
+        $requiredFiles = @(
+            "src/image_compressor_gui.py",
+            "scripts/install.ps1",
+            "scripts/launch.bat",
+            "scripts/start.bat",
+            "scripts/compress_fallback.ps1",
+            "config.ini",
+            "README.md",
+            "docs/QUICKSTART.md",
+            "docs/ADVANCED.md",
+            "docs/PROJECT_SUMMARY.md"
+        )
 
 # Start tests
-Clear-Host
-Write-Host "`n╔════════════════════════════════════════╗" -ForegroundColor Magenta
+            $path = Join-Path $repoRoot $file
+            $exists = Test-Path $path
+            Write-TestResult "File exists: $file" $exists "File not found: $file"
 Write-Host "║   Image Compressor - System Test      ║" -ForegroundColor Magenta
 Write-Host "╚════════════════════════════════════════╝`n" -ForegroundColor Magenta
 
@@ -61,7 +66,7 @@ $requiredFiles = @(
     "image_compressor_gui.py",
     "install.ps1",
     "launch.bat",
-    "start.bat",
+                    $null = [System.Management.Automation.PSParser]::Tokenize((Get-Content $Path -Raw), [ref]$null)
     "compress_fallback.ps1",
     "config.ini",
     "README.md",
@@ -73,12 +78,15 @@ $requiredFiles = @(
 foreach ($file in $requiredFiles) {
     $exists = Test-Path $file
     Write-TestResult "File exists: $file" $exists "File not found"
-}
-
+        Write-TestResult "install.ps1 syntax" (Test-ScriptSyntax $installPath)
+        Write-TestResult "compress_fallback.ps1 syntax" (Test-ScriptSyntax $fallbackPath)
 # Test 2: Python Installation
+        $installPath = Join-Path $repoRoot "scripts/install.ps1"
+        $fallbackPath = Join-Path $repoRoot "scripts/compress_fallback.ps1"
 Write-Section "Python Environment Tests"
 
-try {
+            $pyFile = Join-Path $repoRoot "src/image_compressor_gui.py"
+            Write-TestResult "image_compressor_gui.py syntax" (Test-ScriptSyntax $pyFile)
     $pythonVersion = & python --version 2>&1
     if ($pythonVersion -match "Python (\d+)\.(\d+)\.(\d+)") {
         $major = [int]$Matches[1]
@@ -86,9 +94,9 @@ try {
         
         Write-TestResult "Python installed" $true
         Write-Info "Version: $pythonVersion"
-        
+        if (Test-Path (Join-Path $repoRoot "config.ini")) {
         $validVersion = ($major -eq 3 -and $minor -ge 8)
-        Write-TestResult "Python version >= 3.8" $validVersion "Python 3.8+ required"
+                $config = Get-Content (Join-Path $repoRoot "config.ini") -Raw
     } else {
         Write-TestResult "Python installed" $false "Python not found or invalid version"
     }
@@ -129,22 +137,13 @@ Write-TestResult "PowerShell version >= 5.0" $validPS "PowerShell 5.0+ required"
 
 # Test 5: .NET Framework (for PowerShell fallback)
 Write-Section ".NET Framework Tests"
-
-try {
-    Add-Type -AssemblyName System.Drawing
-    Write-TestResult "System.Drawing available" $true
+            Write-Host "ALL TESTS PASSED! System is ready for use.`n" -ForegroundColor Green
 } catch {
     Write-TestResult "System.Drawing available" $false "Required for PowerShell fallback"
-}
-
-try {
-    Add-Type -AssemblyName System.Windows.Forms
+            Write-Host "MINOR ISSUES DETECTED. System may work with limitations.`n" -ForegroundColor Yellow
     Write-TestResult "System.Windows.Forms available" $true
 } catch {
-    Write-TestResult "System.Windows.Forms available" $false "Required for PowerShell GUI"
-}
-
-# Test 6: Script Syntax
+            Write-Host "CRITICAL ISSUES DETECTED. Please fix errors before using.`n" -ForegroundColor Red
 Write-Section "Script Syntax Tests"
 
 function Test-ScriptSyntax {

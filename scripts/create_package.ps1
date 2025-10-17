@@ -6,9 +6,7 @@ param(
     [switch]$CreateZip
 )
 
-Write-Host "`n╔════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║   Image Compressor - Package Builder  ║" -ForegroundColor Cyan
-Write-Host "╚════════════════════════════════════════╝`n" -ForegroundColor Cyan
+Write-Host "`n=== Image Compressor - Package Builder ===`n" -ForegroundColor Cyan
 
 # Create output directory
 if (Test-Path $OutputDir) {
@@ -21,26 +19,41 @@ Write-Host "✅ Created output directory: $OutputDir" -ForegroundColor Green
 
 # Files to include
 $files = @(
-    "image_compressor_gui.py",
-    "install.ps1",
-    "launch.bat",
-    "start.bat",
-    "compress_fallback.ps1",
+    "src/image_compressor_gui.py",
+    "src/main.py",
+    "src/version.py",
+    "scripts/install.ps1",
+    "scripts/launch.bat",
+    "scripts/start.bat",
+    "scripts/compress_fallback.ps1",
+    "scripts/build_exe.ps1",
+    "scripts/run_tests.ps1",
+    "scripts/test_system.ps1",
+    "scripts/test_local.ps1",
     "config.ini",
     "README.md",
-    "QUICKSTART.md",
-    "ADVANCED.md"
+    "docs/QUICKSTART.md",
+    "docs/ADVANCED.md",
+    "docs/PROJECT_SUMMARY.md",
+    "docs/VISUAL_GUIDE.md"
 )
 
 # Copy files
-Write-Host "`n📋 Copying files..." -ForegroundColor Cyan
+Write-Host "`nCopying files..." -ForegroundColor Cyan
 foreach ($file in $files) {
     if (Test-Path $file) {
-        Copy-Item $file -Destination $OutputDir -Force
+        $dest = Join-Path $OutputDir (Split-Path $file -Leaf)
+        Copy-Item $file -Destination $dest -Force
         Write-Host "   ✓ $file" -ForegroundColor Gray
     } else {
         Write-Host "   ⚠️  $file (not found, skipping)" -ForegroundColor Yellow
     }
+}
+
+# Copy docs folder recursively for completeness
+if (Test-Path "docs") {
+    Copy-Item "docs" -Destination (Join-Path $OutputDir "docs") -Recurse -Force
+    Write-Host "   ✓ docs/ (recursive)" -ForegroundColor Gray
 }
 
 # Create quick start HTML

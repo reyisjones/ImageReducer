@@ -7,16 +7,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "`n╔════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║   Git Repository Initialization       ║" -ForegroundColor Cyan
-Write-Host "╚════════════════════════════════════════╝`n" -ForegroundColor Cyan
+Write-Host "`n=== Git Repository Initialization ===`n" -ForegroundColor Cyan
 
 # Check if git is installed
 try {
     $gitVersion = git --version
-    Write-Host "✅ Git detected: $gitVersion" -ForegroundColor Green
+    Write-Host "Git detected: $gitVersion" -ForegroundColor Green
 } catch {
-    Write-Host "❌ Git is not installed. Please install Git first." -ForegroundColor Red
+    Write-Host "Git is not installed. Please install Git first." -ForegroundColor Red
     Write-Host "   Download from: https://git-scm.com/downloads" -ForegroundColor Yellow
     exit 1
 }
@@ -24,7 +22,7 @@ try {
 # Check if already a git repo
 if (Test-Path ".git") {
     if (-not $Force) {
-        Write-Host "⚠️  Git repository already exists." -ForegroundColor Yellow
+    Write-Host "Git repository already exists." -ForegroundColor Yellow
         $response = Read-Host "Reinitialize? This will preserve history. (Y/N)"
         if ($response -ne "Y" -and $response -ne "y") {
             Write-Host "Aborted." -ForegroundColor Yellow
@@ -34,7 +32,7 @@ if (Test-Path ".git") {
 }
 
 # Create .gitignore
-Write-Host "`n📝 Creating .gitignore..." -ForegroundColor Cyan
+Write-Host "`nCreating .gitignore..." -ForegroundColor Cyan
 $gitignore = @"
 # Python
 __pycache__/
@@ -106,13 +104,13 @@ config_backup.ini
 "@
 
 Set-Content -Path ".gitignore" -Value $gitignore
-Write-Host "   ✓ .gitignore created" -ForegroundColor Gray
+Write-Host "   .gitignore created" -ForegroundColor Gray
 
 # Initialize repository
 if (-not (Test-Path ".git")) {
-    Write-Host "`n🔧 Initializing Git repository..." -ForegroundColor Cyan
+    Write-Host "`nInitializing Git repository..." -ForegroundColor Cyan
     git init
-    Write-Host "   ✓ Repository initialized" -ForegroundColor Gray
+    Write-Host "   Repository initialized" -ForegroundColor Gray
 }
 
 # Configure git (if not already configured globally)
@@ -120,24 +118,26 @@ $userName = git config user.name 2>$null
 $userEmail = git config user.email 2>$null
 
 if ([string]::IsNullOrWhiteSpace($userName)) {
-    Write-Host "`n⚙️  Configuring Git user..." -ForegroundColor Cyan
+    Write-Host "`nConfiguring Git user..." -ForegroundColor Cyan
     $name = Read-Host "Enter your name (e.g. Reyis Jones)"
     git config user.name "$name"
-    Write-Host "   ✓ User name set" -ForegroundColor Gray
+    Write-Host "   User name set" -ForegroundColor Gray
 }
 
 if ([string]::IsNullOrWhiteSpace($userEmail)) {
     $email = Read-Host "Enter your email"
     git config user.email "$email"
-    Write-Host "   ✓ User email set" -ForegroundColor Gray
+    Write-Host "   User email set" -ForegroundColor Gray
 }
 
 # Feature-based commits
-Write-Host "`n📦 Creating feature-based commits..." -ForegroundColor Cyan
+Write-Host "`nCreating feature-based commits..." -ForegroundColor Cyan
 
 # Commit 1: Project structure
 Write-Host "`n[1/8] Project structure..." -ForegroundColor Yellow
-git add LICENSE README.md QUICKSTART.md ADVANCED.md PROJECT_SUMMARY.md VISUAL_GUIDE.md Prompt.md config.ini .gitignore 2>$null
+# Stage root-level and docs files according to current structure
+git add LICENSE README.md config.ini .gitignore 2>$null
+git add docs/QUICKSTART.md docs/ADVANCED.md docs/PROJECT_SUMMARY.md docs/VISUAL_GUIDE.md 2>$null
 git commit -m "feat: initialize project structure
 
 - Add MIT License (Copyright 2025 Reyis Jones)
@@ -147,9 +147,9 @@ git commit -m "feat: initialize project structure
 
 Created with Copilot AI assistance" 2>$null
 
-# Commit 2: Core compression engine
+ # Commit 2: Core compression engine
 Write-Host "[2/8] Core compression engine..." -ForegroundColor Yellow
-git add image_compressor_gui.py requirements.txt 2>$null
+git add src/image_compressor_gui.py src/version.py requirements.txt 2>$null
 git commit -m "feat: add image compression core
 
 - Implement smart compression algorithm
@@ -164,9 +164,9 @@ Features:
 - Resolution control: 800-3840px
 - Web-optimized defaults (1920px, 85% quality)" 2>$null
 
-# Commit 3: UI implementation
+ # Commit 3: UI implementation
 Write-Host "[3/8] UI implementation..." -ForegroundColor Yellow
-git add image_compressor_gui.py 2>$null
+git add src/image_compressor_gui.py src/main.py 2>$null
 git commit -m "feat: implement GUI for folder/file selection
 
 - Clean, modern interface using tkinter
@@ -182,9 +182,9 @@ UI Components:
 - Progress indicator
 - Status text with scrolling" 2>$null
 
-# Commit 4: Installation system
+ # Commit 4: Installation system and scripts
 Write-Host "[4/8] Installation system..." -ForegroundColor Yellow
-git add install.ps1 start.bat launch.bat compress_fallback.ps1 2>$null
+git add scripts/install.ps1 scripts/start.bat scripts/launch.bat scripts/compress_fallback.ps1 2>$null
 git commit -m "feat: create installer and launchers
 
 - Automated installer with Python detection
@@ -200,9 +200,9 @@ Installation Options:
 2. Quick launch (start.bat)
 3. PowerShell mode (compress_fallback.ps1)" 2>$null
 
-# Commit 5: Testing
+ # Commit 5: Testing
 Write-Host "[5/8] Testing framework..." -ForegroundColor Yellow
-git add tests/ pytest.ini requirements-test.txt test_system.ps1 2>$null
+git add src/tests/ pytest.ini requirements-test.txt scripts/test_system.ps1 scripts/run_tests.ps1 scripts/test_local.ps1 2>$null
 git commit -m "test: add pytest and system test cases
 
 - Unit tests for compression algorithm
@@ -223,9 +223,9 @@ Test Coverage:
 
 Run tests: pytest tests/ -v" 2>$null
 
-# Commit 6: Sample images
+ # Commit 6: Sample images
 Write-Host "[6/8] Sample images..." -ForegroundColor Yellow
-git add generate_samples.py sample_images/ 2>$null
+git add src/generate_samples.py sample_images/ 2>$null
 git commit -m "feat: add sample images for testing
 
 - Generate 5 test images (various sizes and formats)
@@ -240,9 +240,9 @@ Sample Images:
 - Small (1500x1500 PNG)
 - Panorama (4000x1500 JPG)" 2>$null
 
-# Commit 7: Package builder
+ # Commit 7: Package builder
 Write-Host "[7/8] Package builder..." -ForegroundColor Yellow
-git add create_package.ps1 2>$null
+git add scripts/create_package.ps1 scripts/build_exe.ps1 2>$null
 git commit -m "build: create installer and package builder
 
 - Distribution package builder
@@ -260,7 +260,7 @@ Package Contents:
 
 Run: .\create_package.ps1 -CreateZip" 2>$null
 
-# Commit 8: Legacy scripts
+ # Commit 8: Legacy scripts
 Write-Host "[8/8] Legacy integration..." -ForegroundColor Yellow
 git add batch-resize.py resize_images.py organize_images.py Compress-Images.ps1 2>$null
 git commit -m "chore: integrate legacy scripts
@@ -274,7 +274,7 @@ Note: Legacy scripts integrated into main application
 Kept for reference and backward compatibility" 2>$null
 
 # Create initial tag
-Write-Host "`n🏷️  Creating release tag..." -ForegroundColor Cyan
+Write-Host "`nCreating release tag..." -ForegroundColor Cyan
 git tag -a v1.0.0 -m "Release v1.0.0 - Initial Release
 
 Image Compressor Desktop Application
@@ -292,23 +292,21 @@ Features:
 Created by Reyis Jones with Copilot AI assistance
 October 2025"
 
-Write-Host "   ✓ Tag v1.0.0 created" -ForegroundColor Gray
+Write-Host "   Tag v1.0.0 created" -ForegroundColor Gray
 
 # Summary
-Write-Host "`n╔════════════════════════════════════════╗" -ForegroundColor Green
-Write-Host "║   ✅ Git Repository Initialized!      ║" -ForegroundColor Green
-Write-Host "╚════════════════════════════════════════╝`n" -ForegroundColor Green
+Write-Host "`nGit Repository Initialized!`n" -ForegroundColor Green
 
-Write-Host "📊 Repository Status:" -ForegroundColor White
+Write-Host "Repository Status:" -ForegroundColor White
 git log --oneline --all --graph --decorate -10
 
-Write-Host "`n📍 Current Branch:" -ForegroundColor White
+Write-Host "`nCurrent Branch:" -ForegroundColor White
 git branch
 
-Write-Host "`n💡 Next Steps:" -ForegroundColor Cyan
-Write-Host "   • Review commits: git log" -ForegroundColor Gray
-Write-Host "   • Create remote repo on GitHub/GitLab" -ForegroundColor Gray
-Write-Host "   • Add remote: git remote add origin <url>" -ForegroundColor Gray
-Write-Host "   • Push: git push -u origin main --tags`n" -ForegroundColor Gray
+Write-Host "`nNext Steps:" -ForegroundColor Cyan
+Write-Host "   - Review commits: git log" -ForegroundColor Gray
+Write-Host "   - Create remote repo on GitHub/GitLab" -ForegroundColor Gray
+Write-Host "   - Add remote: git remote add origin <url>" -ForegroundColor Gray
+Write-Host "   - Push: git push -u origin main --tags`n" -ForegroundColor Gray
 
-Write-Host "🎉 Ready for version control!" -ForegroundColor Green
+Write-Host "Ready for version control!" -ForegroundColor Green
