@@ -39,6 +39,8 @@ env/
 .coverage
 htmlcov/
 *.cover
+.coverage.*
+coverage.xml
 .hypothesis/
 .tox/
 

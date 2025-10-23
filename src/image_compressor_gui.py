@@ -355,7 +355,23 @@ class ImageCompressorGUI:
             # Determine if it's files or folder
             if ";" in path:
                 # Multiple files
-                image_files = [Path(f) for f in path.split(";")]
+                image_files = [Path(f) for f in path.split(";") if f]
+                # Ensure unique absolute paths
+                image_files = list({f.resolve(): f for f in image_files}.values())
+                # Collapse files with the same stem to avoid duplicate outputs
+                def _ext_priority(p: Path) -> int:
+                    ext = p.suffix.lower()
+                    if ext in {'.jpg', '.jpeg'}:
+                        return 2
+                    if ext == '.png':
+                        return 1
+                    return 0
+                stem_choice = {}
+                for f in image_files:
+                    key = f.stem.lower()
+                    if key not in stem_choice or _ext_priority(f) > _ext_priority(stem_choice[key]):
+                        stem_choice[key] = f
+                image_files = list(stem_choice.values())
                 output_folder = Path(image_files[0].parent) / self.output_folder_name.get()
             else:
                 # Single path - could be file or folder
@@ -369,18 +385,37 @@ class ImageCompressorGUI:
                     # Single folder
                     folder = single_path
                     
-                    # Find all images
+                    # Find all images (case-insensitive by trying common patterns)
                     image_files = []
                     for ext in ['*.jpg', '*.jpeg', '*.png', '*.JPG', '*.JPEG', '*.PNG']:
                         image_files.extend(list(folder.rglob(ext)))
                     
-                    # Remove duplicates (just in case)
-                    image_files = list(set(image_files))
+                    # Ensure unique absolute paths
+                    image_files = list({f.resolve(): f for f in image_files}.values())
                     
                     output_folder = folder / self.output_folder_name.get()
                     
-                    # Exclude images already in output folder
-                    image_files = [f for f in image_files if output_folder.name not in str(f.parent)]
+                    # Exclude images already in output folder (and any nested Reduced dir)
+                    image_files = [f for f in image_files if output_folder not in f.parents]
+                    
+                    # Avoid duplicate outputs: if both JPG/PNG share the same stem, keep one
+                    def _ext_priority(p: Path) -> int:
+                        ext = p.suffix.lower()
+                        if ext in {'.jpg', '.jpeg'}:
+                            return 2
+                        if ext == '.png':
+                            return 1
+                        return 0
+                    stem_choice = {}
+                    for f in image_files:
+                        key = f.stem.lower()
+                        if key not in stem_choice:
+                            stem_choice[key] = f
+                        else:
+                            cur = stem_choice[key]
+                            if _ext_priority(f) > _ext_priority(cur):
+                                stem_choice[key] = f
+                    image_files = list(stem_choice.values())
                 else:
                     self.progress_queue.put(("error", "Invalid file or folder path."))
                     return
