@@ -49,6 +49,7 @@ class ImageCompressorGUI:
         self.max_size_mb = tk.DoubleVar(value=1.0)
         self.quality = tk.IntVar(value=85)
         self.max_width = tk.IntVar(value=1920)
+        self.preserve_transparency = tk.BooleanVar(value=False)
         
         # Video compression variables
         self.video_crf = tk.IntVar(value=28)
@@ -239,6 +240,7 @@ class ImageCompressorGUI:
         tk.Label(output_frame, text="(Created inside selected folder)", 
                 font=("Segoe UI", 8), fg="gray").pack(side=tk.LEFT)
         
+<<<<<<< HEAD
         # Video Settings
         video_settings_frame = tk.LabelFrame(
             content_frame,
@@ -281,6 +283,19 @@ class ImageCompressorGUI:
         preset_combo.pack(side=tk.LEFT, padx=10)
         tk.Label(preset_frame, text="(faster = quicker but larger files)", 
                 font=("Segoe UI", 8), fg="gray").pack(side=tk.LEFT)
+        
+        # Preserve transparency option
+        transparency_frame = tk.Frame(settings_frame)
+        transparency_frame.pack(fill=tk.X, pady=3)
+        transparency_check = tk.Checkbutton(
+            transparency_frame,
+            text="Preserve PNG Transparency",
+            variable=self.preserve_transparency,
+            font=("Segoe UI", 9)
+        )
+        transparency_check.pack(side=tk.LEFT)
+        tk.Label(transparency_frame, text="(Keep alpha channel for PNG files)", 
+                font=("Segoe UI", 8), fg="gray").pack(side=tk.LEFT, padx=5)
         
         # Action buttons
         button_frame = tk.Frame(content_frame)
@@ -640,15 +655,25 @@ class ImageCompressorGUI:
                     # Get original size
                     original_size_mb = os.path.getsize(input_path) / (1024 * 1024)
                     
-                    # Create output path with .jpg extension (since we always save as JPEG)
+                    # Determine output extension based on transparency preservation
                     stem = input_path.stem
-                    output_path = output_folder / f"{stem}.jpg"
+                    input_ext = input_path.suffix.lower()
+                    preserve_alpha = self.preserve_transparency.get() and input_ext == '.png'
+                    
+                    # Check if input PNG has transparency
+                    if preserve_alpha:
+                        with Image.open(input_path) as check_img:
+                            has_alpha = check_img.mode in ('RGBA', 'LA') or (check_img.mode == 'P' and 'transparency' in check_img.info)
+                            preserve_alpha = has_alpha
+                    
+                    output_ext = '.png' if preserve_alpha else '.jpg'
+                    output_path = output_folder / f"{stem}{output_ext}"
                     
                     # Debug: Check if file exists before compression
                     original_output_path = output_path
                     counter = 1
                     while output_path.exists():
-                        output_path = output_folder / f"{stem}_{counter}.jpg"
+                        output_path = output_folder / f"{stem}_{counter}{output_ext}"
                         counter += 1
                     
                     # Debug logging
@@ -661,7 +686,8 @@ class ImageCompressorGUI:
                         output_path,
                         self.quality.get(),
                         self.max_width.get(),
-                        self.max_size_mb.get()
+                        self.max_size_mb.get(),
+                        preserve_alpha
                     )
                     
                     final_size_mb = os.path.getsize(output_path) / (1024 * 1024)
@@ -712,48 +738,90 @@ class ImageCompressorGUI:
         except Exception as e:
             self.progress_queue.put(("error", f"Error: {str(e)}"))
     
-    def reduce_image(self, input_path, output_path, initial_quality, max_width, max_size_mb):
-        """Reduce image size while maintaining quality"""
+    def reduce_image(self, input_path, output_path, initial_quality, max_width, max_size_mb, preserve_alpha=False):
+        """Reduce image size while maintaining quality
+        
+        Args:
+            input_path: Path to input image
+            output_path: Path to output image
+            initial_quality: Starting quality level
+            max_width: Maximum width in pixels
+            max_size_mb: Target file size in MB
+            preserve_alpha: If True, preserve PNG transparency (PNG output only)
+        """
         target_size_bytes = int(max_size_mb * 1024 * 1024)
         
         with Image.open(input_path) as img:
-            # Convert to RGB if needed
-            if img.mode in ('RGBA', 'P', 'LA'):
-                # For PNG with transparency, use white background
-                if img.mode in ('RGBA', 'LA'):
-                    background = Image.new('RGB', img.size, (255, 255, 255))
-                    if img.mode == 'RGBA':
-                        background.paste(img, mask=img.split()[3])
+            if preserve_alpha:
+                # Preserve transparency for PNG files
+                # Convert palette mode with transparency to RGBA
+                if img.mode == 'P' and 'transparency' in img.info:
+                    img = img.convert('RGBA')
+                elif img.mode not in ('RGBA', 'LA'):
+                    # If no alpha channel, still save as PNG but convert to RGBA for consistency
+                    img = img.convert('RGBA')
+                
+                quality = initial_quality
+                
+                # Resize if too large
+                if max(img.size) > max_width:
+                    img.thumbnail((max_width, max_width), Image.Resampling.LANCZOS)
+                
+                # Save as PNG with optimization
+                # PNG compression level: 0-9, where 9 is maximum compression
+                compress_level = 9
+                img.save(output_path, "PNG", optimize=True, compress_level=compress_level)
+                
+                # If still too large, progressively resize
+                if os.path.getsize(output_path) > target_size_bytes:
+                    scale_factor = 0.95
+                    while os.path.getsize(output_path) > target_size_bytes and max(img.size) > 800:
+                        new_width = int(img.size[0] * scale_factor)
+                        new_height = int(img.size[1] * scale_factor)
+                        img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                        img.save(output_path, "PNG", optimize=True, compress_level=compress_level)
+                        scale_factor = 0.95
+                
+                return img.size, compress_level
+            else:
+                # Standard JPEG compression (existing behavior)
+                # Convert to RGB if needed
+                if img.mode in ('RGBA', 'P', 'LA'):
+                    # For PNG with transparency, use white background
+                    if img.mode in ('RGBA', 'LA'):
+                        background = Image.new('RGB', img.size, (255, 255, 255))
+                        if img.mode == 'RGBA':
+                            background.paste(img, mask=img.split()[3])
+                        else:
+                            background.paste(img, mask=img.split()[1])
+                        img = background
                     else:
-                        background.paste(img, mask=img.split()[1])
-                    img = background
-                else:
-                    img = img.convert('RGB')
-            
-            quality = initial_quality
-            
-            # Resize if too large
-            if max(img.size) > max_width:
-                img.thumbnail((max_width, max_width), Image.Resampling.LANCZOS)
-            
-            # Save with optimization
-            img.save(output_path, "JPEG", quality=quality, optimize=True)
-            
-            # Adjust quality if needed
-            while os.path.getsize(output_path) > target_size_bytes and quality > 60:
-                quality -= 5
+                        img = img.convert('RGB')
+                
+                quality = initial_quality
+                
+                # Resize if too large
+                if max(img.size) > max_width:
+                    img.thumbnail((max_width, max_width), Image.Resampling.LANCZOS)
+                
+                # Save with optimization
                 img.save(output_path, "JPEG", quality=quality, optimize=True)
-            
-            # Further resize if still too large
-            if os.path.getsize(output_path) > target_size_bytes:
-                scale_factor = 0.9
-                while os.path.getsize(output_path) > target_size_bytes and max(img.size) > 800:
-                    new_width = int(img.size[0] * scale_factor)
-                    new_height = int(img.size[1] * scale_factor)
-                    img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                
+                # Adjust quality if needed
+                while os.path.getsize(output_path) > target_size_bytes and quality > 60:
+                    quality -= 5
                     img.save(output_path, "JPEG", quality=quality, optimize=True)
-            
-            return img.size, quality
+                
+                # Further resize if still too large
+                if os.path.getsize(output_path) > target_size_bytes:
+                    scale_factor = 0.9
+                    while os.path.getsize(output_path) > target_size_bytes and max(img.size) > 800:
+                        new_width = int(img.size[0] * scale_factor)
+                        new_height = int(img.size[1] * scale_factor)
+                        img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                        img.save(output_path, "JPEG", quality=quality, optimize=True)
+                
+                return img.size, quality
     
     def show_help(self):
         """Show help dialog with instructions"""
