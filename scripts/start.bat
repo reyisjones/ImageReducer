@@ -17,17 +17,24 @@ if %errorlevel% equ 0 (
     echo [*] Python detected - Launching full application...
     echo.
     
-    REM Check if Pillow is installed
+    REM Check if dependencies are installed
     python -c "import PIL" >nul 2>&1
     if %errorlevel% neq 0 (
-        echo [!] Installing required dependency: Pillow
+        echo [!] Installing required dependencies...
         echo     This will only happen once...
         echo.
-        python -m pip install Pillow --quiet
+        python -m pip install -r "%~dp0..\requirements.txt" --quiet
     )
     
-    REM Launch Python GUI
-    python "%~dp0image_compressor_gui.py"
+    REM Check for video compression support
+    python -c "import ffmpeg" >nul 2>&1
+    if %errorlevel% neq 0 (
+        echo [!] Installing video compression support...
+        python -m pip install ffmpeg-python --quiet
+    )
+    
+    REM Launch Python GUI (in src directory)
+    python "%~dp0..\src\main.py"
     goto :end
 )
 

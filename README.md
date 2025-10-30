@@ -1,6 +1,6 @@
 # 🖼️ Image Compressor - Desktop Application
 
-A simple, user-friendly desktop application to compress JPG and PNG images to web-optimized sizes while maintaining high visual quality.
+A simple, user-friendly desktop application to compress JPG and PNG images **and videos** to web-optimized sizes while maintaining high visual quality.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
@@ -75,13 +75,13 @@ Get-FileHash ImageCompressor-v{version}-Windows.zip -Algorithm SHA256
 
 - **User-Friendly GUI** - Clean, intuitive interface built with tkinter
 - **Smart Compression** - Automatically compress images to < 1 MB while preserving quality
+- **🎬 Video Compression** - Compress video files (MP4, MOV, MPEG) via CLI using FFmpeg
 - **Flexible Input** - Select entire folders or individual files
 - **🎯 Help & Demo System** - Built-in help guide and interactive demo with sample images
 - **▶️ Run Demo** - One-click demonstration using included sample images
 - **Customizable Settings**:
-  - Target file size (default: 1 MB)
-  - Initial quality (60-95%)
-  - Maximum width (800-3840px, default: 1920px for web)
+  - **Images**: Target file size (default: 1 MB), quality (60-95%), max width (800-3840px)
+  - **Videos**: CRF quality (0-51), encoding preset, resolution scaling
 - **Batch Processing** - Process multiple images at once with progress tracking
 - **Organized Output** - Compressed images saved to "Reduced" folder
 - **No Manual Scripts** - Everything runs from a desktop shortcut
@@ -131,6 +131,8 @@ Simply double-click `launch.bat` to run the application directly.
 
 ## 📖 How to Use
 
+### Image Compression (GUI)
+
 1. **Launch** the application from desktop shortcut or Start Menu
 2. **Select** a folder or individual image files using the Browse buttons
 3. **Adjust** compression settings (optional):
@@ -141,7 +143,38 @@ Simply double-click `launch.bat` to run the application directly.
 5. **Wait** for processing to complete
 6. **Find** compressed images in the "Reduced" folder
 
+### Video Compression (CLI)
+
+Compress videos using the command line interface with FFmpeg:
+
+```bash
+# Basic usage - compress with default settings (CRF 28, medium preset)
+python src/main.py --video sample.mp4
+
+# Custom quality and speed (CRF: lower = better quality, preset: slow = better compression)
+python src/main.py --video sample.mov --crf 26 --preset slow --output compressed/
+
+# Resize and compress
+python src/main.py --video sample.mpeg --resolution 1280x720 --output output.mp4
+
+# High quality compression
+python src/main.py --video input.mp4 --crf 20 --preset slower --output high_quality.mp4
+```
+
+**Video CLI Options:**
+- `--video INPUT` - Input video file (required)
+- `--output OUTPUT` - Output file or directory (optional, defaults to `{filename}_compressed.mp4`)
+- `--crf CRF` - Quality (0-51, default 28). Lower = better quality, larger file
+- `--preset PRESET` - Encoding speed: ultrafast, superfast, veryfast, faster, fast, medium (default), slow, slower, veryslow
+- `--resolution WIDTHxHEIGHT` - Resize video (e.g., 1920x1080, 1280x720)
+
+**Supported Video Formats:** `.mp4`, `.mov`, `.mpeg`, `.avi`, `.mkv`
+
+> **Note:** FFmpeg must be installed on your system for video compression. Download from [ffmpeg.org](https://ffmpeg.org/)
+
 ## ⚙️ Compression Settings Guide
+
+### Image Compression
 
 | Use Case | Target Size | Quality | Max Width |
 |----------|-------------|---------|-----------|
@@ -150,16 +183,37 @@ Simply double-click `launch.bat` to run the application directly.
 | **High Quality** | 2 MB | 90 | 2560px |
 | **Mobile** | 0.3 MB | 75 | 1280px |
 
+### Video Compression
+
+| Use Case | CRF | Preset | Resolution |
+|----------|-----|--------|------------|
+| **Web/Streaming** | 26-28 | medium | 1920x1080 |
+| **Social Media** | 28-30 | fast | 1280x720 |
+| **High Quality** | 20-24 | slow | Original |
+| **Small File** | 30-34 | fast | 1280x720 |
+| **Archive** | 18-22 | veryslow | Original |
+
+**CRF Guide:**
+- 18-22: Very high quality, large files
+- 23-28: Good quality, balanced file size (recommended)
+- 29-34: Lower quality, smaller files
+- 35+: Poor quality, very small files
+
 ## 📁 Project Structure
 
 ```
 ImageReducer/
 ├── src/                       # Python application code
+│   ├── imagereducer/              # Core compression modules
+│   │   ├── __init__.py
+│   │   └── video_reducer.py       # 🆕 Video compression module
 │   ├── image_compressor_gui.py    # Main GUI application
+│   ├── main.py                    # 🆕 Enhanced CLI entry point
 │   ├── version.py                 # Version management
 │   ├── generate_samples.py        # Sample image generator
 │   ├── tests/                     # Test suite
 │   │   ├── test_compression.py
+│   │   ├── test_video_reducer.py  # 🆕 Video compression tests
 │   │   └── README.md
 │   └── __init__.py
 ├── scripts/                   # PowerShell and batch scripts
@@ -180,6 +234,7 @@ ImageReducer/
 │   ├── organize_images.py         # Image organization utility
 │   └── Compress-Images.ps1        # PowerShell compression script
 ├── sample_images/             # Demo images for testing
+├── sample_videos/             # 🆕 Demo videos for testing
 ├── .github/workflows/         # CI/CD pipelines
 ├── config.ini                 # User configuration
 ├── requirements.txt           # Python dependencies
@@ -191,10 +246,13 @@ ImageReducer/
 ### Requirements
 - **Python**: 3.8 or higher
 - **Pillow**: Image processing library
+- **ffmpeg-python**: Video processing library (for video compression)
+- **FFmpeg**: System binary required for video compression ([download here](https://ffmpeg.org/))
 - **Operating System**: Windows 10/11
 
 ### How It Works
 
+#### Image Compression
 1. **Image Loading**: Opens images using Pillow (PIL)
 2. **Format Conversion**: Converts RGBA/PNG to RGB/JPEG
 3. **Smart Resizing**: 
@@ -206,6 +264,14 @@ ImageReducer/
    - Iteratively reduces quality if file too large
    - Further reduces dimensions if needed
 5. **Optimization**: Uses JPEG optimization for smallest file size
+
+#### Video Compression
+1. **Input Validation**: Checks file format and existence
+2. **FFmpeg Processing**: Uses libx264 codec with configurable settings
+3. **Quality Control**: CRF-based quality (lower = better)
+4. **Optional Resizing**: Scales video to specified resolution
+5. **Audio Encoding**: Re-encodes audio with AAC codec at 128k bitrate
+6. **Progress Logging**: Reports file size reduction percentage
 
 ### Compression Algorithm
 
@@ -232,6 +298,12 @@ ImageReducer/
 - Run: `python -m pip install --upgrade pip`
 - Run: `python -m pip install Pillow`
 
+### "FFmpeg not found" (Video Compression)
+- Download FFmpeg from https://ffmpeg.org/download.html
+- Install and add to system PATH
+- Or use a package manager: `winget install ffmpeg` (Windows 11)
+- Verify installation: `ffmpeg -version`
+
 ### Application won't start
 - Ensure Python is in your PATH
 - Try running from command line: `python image_compressor_gui.py`
@@ -241,6 +313,16 @@ ImageReducer/
 - Lower the "Initial Quality" setting
 - Reduce the "Max Width" to 1280px or 1600px
 - Set a smaller "Target Size"
+
+### Videos taking too long to compress
+- Use a faster preset: `--preset fast` or `--preset veryfast`
+- Increase CRF value: `--crf 30` (lower quality, faster)
+- Reduce resolution: `--resolution 1280x720`
+
+### Video output file is larger than input
+- Lower the CRF value: `--crf 24` or `--crf 26`
+- Use a slower preset for better compression: `--preset slow`
+- The input may already be well-compressed
 
 ### Images losing too much quality
 - Increase "Initial Quality" to 90-95

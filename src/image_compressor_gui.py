@@ -1,6 +1,6 @@
 """
 Image Compressor - Desktop Application
-A user-friendly GUI tool to compress JPG and PNG images to < 1MB
+A user-friendly GUI tool to compress JPG, PNG images and videos
 while maintaining high visual quality for web and content creation.
 """
 
@@ -23,11 +23,20 @@ except ImportError:
     APP_NAME = "Image Compressor"
     get_full_version = lambda: f"{APP_NAME} v{__version__}"
 
+# Import video compression module
+try:
+    from imagereducer.video_reducer import VideoReducer, check_ffmpeg_installed
+    VIDEO_COMPRESSION_AVAILABLE = True
+    FFMPEG_INSTALLED = check_ffmpeg_installed()
+except ImportError:
+    VIDEO_COMPRESSION_AVAILABLE = False
+    FFMPEG_INSTALLED = False
+
 class ImageCompressorGUI:
     def __init__(self, root):
         self.root = root
         self.root.title(f"{APP_NAME} v{__version__} - Simple & Fast")
-        self.root.geometry("700x550")
+        self.root.geometry("700x700")
         self.root.resizable(False, False)
         
         # Configure style
@@ -40,6 +49,11 @@ class ImageCompressorGUI:
         self.max_size_mb = tk.DoubleVar(value=1.0)
         self.quality = tk.IntVar(value=85)
         self.max_width = tk.IntVar(value=1920)
+        
+        # Video compression variables
+        self.video_crf = tk.IntVar(value=28)
+        self.video_preset = tk.StringVar(value="medium")
+        
         self.processing = False
         self.cancel_flag = False
         self.progress_queue = queue.Queue()
@@ -225,6 +239,49 @@ class ImageCompressorGUI:
         tk.Label(output_frame, text="(Created inside selected folder)", 
                 font=("Segoe UI", 8), fg="gray").pack(side=tk.LEFT)
         
+        # Video Settings
+        video_settings_frame = tk.LabelFrame(
+            content_frame,
+            text="🎬 Video Compression Settings (Advanced)",
+            font=("Segoe UI", 10, "bold"),
+            padx=10,
+            pady=10
+        )
+        video_settings_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        # CRF Quality
+        crf_frame = tk.Frame(video_settings_frame)
+        crf_frame.pack(fill=tk.X, pady=3)
+        tk.Label(crf_frame, text="CRF Quality:", font=("Segoe UI", 9)).pack(side=tk.LEFT)
+        crf_spinbox = tk.Spinbox(
+            crf_frame,
+            from_=18,
+            to=35,
+            increment=1,
+            textvariable=self.video_crf,
+            width=10,
+            font=("Segoe UI", 9)
+        )
+        crf_spinbox.pack(side=tk.LEFT, padx=10)
+        tk.Label(crf_frame, text="(Lower = better quality, 23-28 recommended)", 
+                font=("Segoe UI", 8), fg="gray").pack(side=tk.LEFT)
+        
+        # Preset
+        preset_frame = tk.Frame(video_settings_frame)
+        preset_frame.pack(fill=tk.X, pady=3)
+        tk.Label(preset_frame, text="Encoding Speed:", font=("Segoe UI", 9)).pack(side=tk.LEFT)
+        preset_combo = ttk.Combobox(
+            preset_frame,
+            textvariable=self.video_preset,
+            values=['ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'medium', 'slow', 'slower', 'veryslow'],
+            width=12,
+            state='readonly',
+            font=("Segoe UI", 9)
+        )
+        preset_combo.pack(side=tk.LEFT, padx=10)
+        tk.Label(preset_frame, text="(faster = quicker but larger files)", 
+                font=("Segoe UI", 8), fg="gray").pack(side=tk.LEFT)
+        
         # Action buttons
         button_frame = tk.Frame(content_frame)
         button_frame.pack(fill=tk.X, pady=(0, 15))
@@ -306,11 +363,13 @@ class ImageCompressorGUI:
             self.selected_path.set(folder)
     
     def browse_files(self):
-        """Browse for multiple image files"""
+        """Browse for multiple image or video files"""
         files = filedialog.askopenfilenames(
-            title="Select Image Files",
+            title="Select Image or Video Files",
             filetypes=[
                 ("Image files", "*.jpg *.jpeg *.png *.JPG *.JPEG *.PNG"),
+                ("Video files", "*.mp4 *.mov *.mpeg *.avi *.mkv *.MP4 *.MOV *.MPEG *.AVI *.MKV"),
+                ("All media files", "*.jpg *.jpeg *.png *.mp4 *.mov *.mpeg *.avi *.mkv"),
                 ("All files", "*.*")
             ]
         )
@@ -326,9 +385,28 @@ class ImageCompressorGUI:
             messagebox.showwarning("No Selection", "Please select a folder or files to compress.")
             return
         
+        # Check if video files are selected (for early feedback)
+        video_extensions = {'.mp4', '.mov', '.mpeg', '.avi', '.mkv'}
+        has_video = False
+        
+        if ";" in path:
+            # Multiple files selected
+            files = [Path(f) for f in path.split(";") if f]
+            has_video = any(f.suffix.lower() in video_extensions for f in files)
+        else:
+            # Single file
+            single_path = Path(path)
+            if single_path.is_file():
+                has_video = single_path.suffix.lower() in video_extensions
+        
         # Clear previous status
         self.status_text.config(state=tk.NORMAL)
         self.status_text.delete(1.0, tk.END)
+        
+        # Show immediate feedback for video files
+        if has_video:
+            self.log_message("🎬 Starting Video Compression Analysis...\n")
+        
         self.status_text.config(state=tk.DISABLED)
         
         # Update UI state
@@ -355,10 +433,36 @@ class ImageCompressorGUI:
             # Determine if it's files or folder
             if ";" in path:
                 # Multiple files
-                image_files = [Path(f) for f in path.split(";") if f]
+                all_files = [Path(f) for f in path.split(";") if f]
                 # Ensure unique absolute paths
-                image_files = list({f.resolve(): f for f in image_files}.values())
-                # Collapse files with the same stem to avoid duplicate outputs
+                all_files = list({f.resolve(): f for f in all_files}.values())
+                
+                # Separate video and image files
+                video_extensions = {'.mp4', '.mov', '.mpeg', '.avi', '.mkv'}
+                image_files = [f for f in all_files if f.suffix.lower() not in video_extensions]
+                video_files = [f for f in all_files if f.suffix.lower() in video_extensions]
+                
+                # Process video files if found
+                if video_files and not VIDEO_COMPRESSION_AVAILABLE:
+                    msg = f"🎬 Video Compression Not Available\n\n"
+                    msg += f"Found {len(video_files)} video file(s)\n\n"
+                    msg += "Please install ffmpeg-python:\n"
+                    msg += "  pip install ffmpeg-python\n\n"
+                    msg += "And ensure FFmpeg is installed on your system."
+                    self.progress_queue.put(("log", msg))
+                    video_files = []  # Skip video processing
+                
+                if not image_files and not video_files:
+                    self.progress_queue.put(("error", "No media files found in selection."))
+                    return
+                
+                # Set output folder
+                if image_files:
+                    output_folder = Path(image_files[0].parent) / self.output_folder_name.get()
+                elif video_files:
+                    output_folder = Path(video_files[0].parent) / self.output_folder_name.get()
+                
+                # Collapse image files with the same stem to avoid duplicate outputs
                 def _ext_priority(p: Path) -> int:
                     ext = p.suffix.lower()
                     if ext in {'.jpg', '.jpeg'}:
@@ -376,10 +480,26 @@ class ImageCompressorGUI:
             else:
                 # Single path - could be file or folder
                 single_path = Path(path)
+                video_extensions = {'.mp4', '.mov', '.mpeg', '.avi', '.mkv'}
+                image_files = []
+                video_files = []
                 
                 if single_path.is_file():
-                    # Single file
-                    image_files = [single_path]
+                    # Check if it's a video file
+                    if single_path.suffix.lower() in video_extensions:
+                        if not VIDEO_COMPRESSION_AVAILABLE:
+                            msg = f"🎬 Video Compression Not Available\n\n"
+                            msg += "Please install ffmpeg-python:\n"
+                            msg += "  pip install ffmpeg-python\n\n"
+                            msg += "And ensure FFmpeg is installed on your system."
+                            self.progress_queue.put(("log", msg))
+                            self.progress_queue.put(("error", "Video compression dependencies not installed."))
+                            return
+                        video_files = [single_path]
+                    else:
+                        # Single image file
+                        image_files = [single_path]
+                    
                     output_folder = single_path.parent / self.output_folder_name.get()
                 elif single_path.is_dir():
                     # Single folder
@@ -420,26 +540,101 @@ class ImageCompressorGUI:
                     self.progress_queue.put(("error", "Invalid file or folder path."))
                     return
             
-            if not image_files:
-                self.progress_queue.put(("error", "No image files found in the selected location."))
+            if not image_files and not video_files:
+                self.progress_queue.put(("error", "No media files found in the selected location."))
                 return
             
             # Create output folder
             output_folder.mkdir(exist_ok=True)
             
-            total = len(image_files)
-            self.progress_queue.put(("log", f"🔍 Found {total} image(s) to process\n"))
+            total_files = len(image_files) + len(video_files)
+            self.progress_queue.put(("log", f"🔍 Found {len(image_files)} image(s) and {len(video_files)} video(s) to process\n"))
             self.progress_queue.put(("log", "=" * 70))
             
-            # Process each image
+            # Process results tracking
             results = []
+            processed_count = 0
+            
+            # Process video files first
+            if video_files and VIDEO_COMPRESSION_AVAILABLE:
+                # Check if FFmpeg binary is installed
+                if not FFMPEG_INSTALLED:
+                    msg = "⚠️ FFmpeg Not Found\n\n"
+                    msg += "FFmpeg executable is not installed or not in your system PATH.\n\n"
+                    msg += "Please install FFmpeg:\n"
+                    msg += "  1. Download from: https://ffmpeg.org/download.html\n"
+                    msg += "  2. For Windows: Use 'winget install ffmpeg' or download the binary\n"
+                    msg += "  3. Add FFmpeg to your system PATH\n"
+                    msg += "  4. Restart this application\n\n"
+                    msg += f"Skipping {len(video_files)} video file(s).\n"
+                    self.progress_queue.put(("log", msg))
+                    video_files = []  # Skip video processing
+                
+                if video_files:  # Only process if FFmpeg is available
+                    video_reducer = VideoReducer(crf=self.video_crf.get(), preset=self.video_preset.get())
+                    
+                    for i, input_path in enumerate(video_files, 1):
+                        if self.cancel_flag:
+                            self.progress_queue.put(("log", "\n❌ Compression canceled by user."))
+                            break
+                        
+                        processed_count += 1
+                        self.progress_queue.put(("log", f"🎬 Processing Video: {input_path.name} (#{processed_count}/{total_files})\n"))
+                        
+                        try:
+                            # Get original size
+                            original_size_mb = os.path.getsize(input_path) / (1024 * 1024)
+                            
+                            # Create output path - always use .mp4 for video output for compatibility
+                            stem = input_path.stem
+                            output_path = output_folder / f"{stem}_compressed.mp4"
+                            
+                            # Handle existing files
+                            counter = 1
+                            while output_path.exists():
+                                output_path = output_folder / f"{stem}_compressed_{counter}.mp4"
+                                counter += 1
+                            
+                            # Compress video
+                            self.progress_queue.put(("log", f"   Compressing with CRF={self.video_crf.get()}, preset={self.video_preset.get()}...\n"))
+                            
+                            result = video_reducer.compress(
+                                str(input_path),
+                                str(output_path)
+                            )
+                            
+                            if result['success']:
+                                final_size_mb = result['output_size'] / (1024 * 1024)
+                                reduction = result['reduction_percent']
+                                
+                                msg = f"✅ {input_path.name}\n"
+                                msg += f"    {original_size_mb:.2f} MB → {final_size_mb:.2f} MB ({reduction:.1f}% reduction)\n"
+                                
+                                self.progress_queue.put(("log", msg))
+                                self.progress_queue.put(("progress", (processed_count / total_files) * 100))
+                                
+                                results.append({
+                                    'name': input_path.name,
+                                    'type': 'video',
+                                    'original': original_size_mb,
+                                    'final': final_size_mb,
+                                    'reduction': reduction
+                                })
+                            else:
+                                self.progress_queue.put(("log", f"❌ Error: {result['error']}\n"))
+                            
+                        except Exception as e:
+                            self.progress_queue.put(("log", f"❌ Error: {input_path.name} - {str(e)}\n"))
+            
+            # Process image files
             for i, input_path in enumerate(image_files, 1):
                 if self.cancel_flag:
                     self.progress_queue.put(("log", "\n❌ Compression canceled by user."))
                     break
                 
+                processed_count += 1
                 # Debug: Log which file we're processing
-                self.progress_queue.put(("log", f"🔄 Processing: {input_path.name} (#{i}/{total})\n"))
+                self.progress_queue.put(("log", f"🔄 Processing Image: {input_path.name} (#{processed_count}/{total_files})\n"))
                 
                 try:
                     # Get original size
@@ -473,14 +668,15 @@ class ImageCompressorGUI:
                     reduction = ((original_size_mb - final_size_mb) / original_size_mb) * 100 if original_size_mb > 0 else 0
                     
                     status = "✅" if final_size_mb < self.max_size_mb.get() else "⚠️"
-                    msg = f"{status} [{i}/{total}] {input_path.name}\n"
+                    msg = f"{status} {input_path.name}\n"
                     msg += f"    {original_size_mb:.2f} MB → {final_size_mb:.2f} MB ({reduction:.1f}% reduction)\n"
                     
                     self.progress_queue.put(("log", msg))
-                    self.progress_queue.put(("progress", (i / total) * 100))
+                    self.progress_queue.put(("progress", (processed_count / total_files) * 100))
                     
                     results.append({
                         'name': input_path.name,
+                        'type': 'image',
                         'original': original_size_mb,
                         'final': final_size_mb,
                         'reduction': reduction
@@ -495,9 +691,20 @@ class ImageCompressorGUI:
                 total_final = sum(r['final'] for r in results)
                 total_reduction = ((total_original - total_final) / total_original) * 100 if total_original > 0 else 0
                 
+                # Count by type
+                images_count = sum(1 for r in results if r.get('type') == 'image')
+                videos_count = sum(1 for r in results if r.get('type') == 'video')
+                
                 self.progress_queue.put(("log", "\n" + "=" * 70))
                 self.progress_queue.put(("log", "📈 SUMMARY"))
-                self.progress_queue.put(("log", f"✅ Processed: {len(results)} images"))
+                
+                if images_count > 0 and videos_count > 0:
+                    self.progress_queue.put(("log", f"✅ Processed: {images_count} image(s) and {videos_count} video(s)"))
+                elif images_count > 0:
+                    self.progress_queue.put(("log", f"✅ Processed: {images_count} image(s)"))
+                else:
+                    self.progress_queue.put(("log", f"✅ Processed: {videos_count} video(s)"))
+                
                 self.progress_queue.put(("log", f"💾 Space saved: {total_original - total_final:.2f} MB ({total_reduction:.1f}%)"))
                 self.progress_queue.put(("log", f"📁 Output: {output_folder}"))
                 self.progress_queue.put(("complete", ""))
@@ -745,7 +952,14 @@ Need more help? See README.md in the installation folder.
                     self.processing = False
                     self.compress_btn.config(state=tk.NORMAL)
                     self.cancel_btn.config(state=tk.DISABLED)
-                    messagebox.showinfo("Complete", "Image compression completed successfully!")
+                    messagebox.showinfo("Complete", "Media compression completed successfully!")
+                elif msg_type == "video_complete":
+                    self.processing = False
+                    self.compress_btn.config(state=tk.NORMAL)
+                    self.cancel_btn.config(state=tk.DISABLED)
+                    messagebox.showinfo("Video Files Detected", 
+                                       "Video files detected. Please use the command line for video compression.\n\n"
+                                       "See the instructions in the Progress window above.")
                 elif msg_type == "error":
                     self.processing = False
                     self.compress_btn.config(state=tk.NORMAL)
