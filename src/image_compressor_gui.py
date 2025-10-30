@@ -240,7 +240,6 @@ class ImageCompressorGUI:
         tk.Label(output_frame, text="(Created inside selected folder)", 
                 font=("Segoe UI", 8), fg="gray").pack(side=tk.LEFT)
         
-<<<<<<< HEAD
         # Video Settings
         video_settings_frame = tk.LabelFrame(
             content_frame,
